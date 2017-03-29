@@ -19,6 +19,7 @@
 
     <media folder="media" destination="plg_loginguard_pushbullet">
         <folder>images</folder>
+        <folder>classes</folder>
     </media>
 
     <languages folder="language">
