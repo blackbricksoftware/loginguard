@@ -8,7 +8,10 @@
 // Prevent direct access
 defined('_JEXEC') or die;
 
-JLoader::register('LoginGuardTOTPAuthenticator', __DIR__ . '/classes/authenticator.php');
+if (!class_exists('LoginGuardAuthenticator', true))
+{
+	JLoader::register('LoginGuardAuthenticator', JPATH_ADMINISTRATOR . '/components/com_loginguard/helpers/authenticator.php');
+}
 
 /**
  * Akeeba LoginGuard Plugin for Two Step Verification method "Time-based One Time Password"
