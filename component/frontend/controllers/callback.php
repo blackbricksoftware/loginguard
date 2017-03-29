@@ -43,6 +43,11 @@ class LoginGuardControllerCallback extends JControllerLegacy
 		}
 
 		// Trigger the onLoginGuardCallback plugin event
+		if (!class_exists('LoginGuardHelperTfa', true))
+		{
+			JLoader::register('LoginGuardHelperTfa', JPATH_SITE . '/components/com_loginguard/helpers/tfa.php');
+		}
+
 		$results = LoginGuardHelperTfa::runPlugins('onLoginGuardCallback', array($method));
 
 		/**
