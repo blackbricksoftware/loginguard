@@ -16,6 +16,7 @@
     <files>
         <filename plugin="pushbullet">pushbullet.php</filename>
         <folder>classes</folder>
+        <folder>tmpl</folder>
     </files>
 
     <media folder="media" destination="plg_loginguard_pushbullet">
@@ -36,7 +37,7 @@
                         label="PLG_LOGINGUARD_PUSHBULLET_CONFIG_CLIENTID_LABEL"
                         description="PLG_LOGINGUARD_PUSHBULLET_CONFIG_CLIENTID_DESC"
                         default=""
-                        filter="int"
+                        filter="base64"
                 />
 
                 <field

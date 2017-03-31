@@ -127,6 +127,7 @@ class LoginGuardControllerAjax extends JControllerLegacy
 			JLoader::register('LoginGuardHelperTfa', JPATH_SITE . '/components/com_loginguard/helpers/tfa.php');
 		}
 
+		JPluginHelper::importPlugin('loginguard');
 		$results = LoginGuardHelperTfa::runPlugins('onLoginGuardAjax', array($method, $action));
 
 		$result = null;

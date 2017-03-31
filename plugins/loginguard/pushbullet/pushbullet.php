@@ -26,6 +26,20 @@ if (!class_exists('LoginGuardPushbulletApi', true))
 class PlgLoginguardPushbullet extends JPlugin
 {
 	/**
+	 * PushBullet OAuth2 Client ID
+	 *
+	 * @var   string
+	 */
+	public $clientId;
+
+	/**
+	 * PushBullet OAuth2 Secret ID
+	 *
+	 * @var   string
+	 */
+	private $secret;
+
+	/**
 	 * The TFA method name handled by this plugin
 	 *
 	 * @var   string
@@ -44,6 +58,14 @@ class PlgLoginguardPushbullet extends JPlugin
 	{
 		parent::__construct($subject, $config);
 
+		// Load the PushBullet API parameters
+		/** @var \Joomla\Registry\Registry $params */
+		$params  = $this->params;
+
+		$this->clientId = $params->get('client_id', null);
+		$this->secret   = $params->get('secret', null);
+
+		// Load the language files
 		$this->loadLanguage();
 	}
 
@@ -54,6 +76,12 @@ class PlgLoginguardPushbullet extends JPlugin
 	 */
 	public function onLoginGuardTfaGetMethod()
 	{
+		// This plugin is disabled if you haven't configured it yet
+		if (empty($this->clientId) || empty($this->secret))
+		{
+			return false;
+		}
+
 		$helpURL = $this->params->get('helpurl', 'https://github.com/akeeba/loginguard/wiki/Pushbullet');
 
 		return array(
@@ -85,54 +113,91 @@ class PlgLoginguardPushbullet extends JPlugin
 	 */
 	public function onLoginGuardTfaGetSetup($record)
 	{
+		$helpURL  = $this->params->get('helpurl', 'https://github.com/akeeba/loginguard/wiki/Authenticator-App');
+
 		// Make sure we are actually meant to handle this method
 		if ($record->method != $this->tfaMethodName)
 		{
 			return array();
 		}
 
-		// TODO Change that (this is a temporary placeholder from the TOTP plugin...)
-
-		$totp = new LoginGuardAuthenticator();
-
 		// Load the options from the record (if any)
 		$options = $this->_decodeRecordOptions($record);
 		$key     = isset($options['key']) ? $options['key'] : '';
+		$token   = isset($options['token']) ? $options['token'] : '';
 
-		// If there's a key in the session use that instead.
-		$session    = JFactory::getSession();
-		$sessionKey = $session->get('totp.key', null, 'com_loginguard');
+		// If there's a key or toekn in the session use that instead.
+		$session = JFactory::getSession();
+		$key     = $session->get('pushbullet.key', $key, 'com_loginguard');
+		$token   = $session->get('pushbullet.token', $token, 'com_loginguard');
 
-		if (!empty($sessionKey))
-		{
-			$key = $sessionKey;
-		}
+		// Initialize objects
+		$totp = new LoginGuardAuthenticator();
 
 		// If there's still no key in the options, generate one and save it in the session
 		if (empty($key))
 		{
 			$key = $totp->generateSecret();
-			$session->set('totp.key', $key, 'com_loginguard');
+			$session->set('pushbullet.key', $key, 'com_loginguard');
 		}
 
-		// Generate a QR code for the key
-		$user     = JFactory::getUser($record->user_id);
-		$hostname = JUri::getInstance()->toString(array('host'));
-		$qr       = $totp->getUrl($user->username, $hostname, $key);
-		$helpURL  = $this->params->get('helpurl', 'https://github.com/akeeba/loginguard/wiki/Authenticator-App');
+		$session->set('pushbullet.user_id', $record->user_id, 'com_loginguard');
+
+		// If there is no token we need to show the OAuth2 button
+		if (empty($token))
+		{
+			$layoutPath = JPluginHelper::getLayoutPath('loginguard', 'pushbullet', 'oauth2');
+			ob_start();
+			include $layoutPath;
+			$html = ob_get_clean();
+
+			return array(
+				// Default title if you are setting up this TFA method for the first time
+				'default_title'  => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_DISPLAYEDAS'),
+				// Custom HTML to display above the TFA setup form
+				'pre_message'    => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_SETUP_INSTRUCTIONS'),
+				// Heading for displayed tabular data. Typically used to display a list of fixed TFA codes, TOTP setup parameters etc
+				'table_heading'  => '',
+				// Any tabular data to display (label => custom HTML). See above
+				'tabular_data'   => array(),
+				// Hidden fields to include in the form (name => value)
+				'hidden_data'    => array(),
+				// How to render the TFA setup code field. "input" (HTML input element) or "custom" (custom HTML)
+				'field_type'     => 'custom',
+				// The type attribute for the HTML input box. Typically "text" or "password". Use any HTML5 input type.
+				'input_type'     => '',
+				// Pre-filled value for the HTML input box. Typically used for fixed codes, the fixed YubiKey ID etc.
+				'input_value'    => '',
+				// Placeholder text for the HTML input box. Leave empty if you don't need it.
+				'placeholder'    => '',
+				// Label to show above the HTML input box. Leave empty if you don't need it.
+				'label'          => '',
+				// Custom HTML. Only used when field_type = custom.
+				'html'           => $html,
+				// Should I show the submit button (apply the TFA setup)? Only applies in the Add page.
+				'show_submit'    => false,
+				// onclick handler for the submit button (apply the TFA setup)?
+				'submit_onclick' => '',
+				// Custom HTML to display below the TFA setup form
+				'post_message'   => '',
+				// URL for help content
+				'help_url' => $helpURL,
+			);
+
+		}
+
+		// We have a token and a key. Send a push message with a new code and ask the user to enter it.
+		$this->sendCode($key, $token);
 
 		return array(
 			// Default title if you are setting up this TFA method for the first time
-			'default_title'  => JText::_('PLG_LOGINGUARD_TOTP_LBL_DISPLAYEDAS'),
+			'default_title'  => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_DISPLAYEDAS'),
 			// Custom HTML to display above the TFA setup form
-			'pre_message'    => JText::_('PLG_LOGINGUARD_TOTP_LBL_SETUP_INSTRUCTIONS'),
+			'pre_message'    => '',
 			// Heading for displayed tabular data. Typically used to display a list of fixed TFA codes, TOTP setup parameters etc
-			'table_heading'  => JText::_('PLG_LOGINGUARD_TOTP_LBL_SETUP_TABLE_HEADING'),
+			'table_heading'  => '',
 			// Any tabular data to display (label => custom HTML). See above
-			'tabular_data'   => array(
-				JText::_('PLG_LOGINGUARD_TOTP_LBL_SETUP_TABLE_KEY') => $key,
-				JText::_('PLG_LOGINGUARD_TOTP_LBL_SETUP_TABLE_QR')  => "<img src=\"$qr\" />",
-			),
+			'tabular_data'   => array(),
 			// Hidden fields to include in the form (name => value)
 			'hidden_data'    => array(
 				'key' => $key,
@@ -144,9 +209,9 @@ class PlgLoginguardPushbullet extends JPlugin
 			// Pre-filled value for the HTML input box. Typically used for fixed codes, the fixed YubiKey ID etc.
 			'input_value'    => '',
 			// Placeholder text for the HTML input box. Leave empty if you don't need it.
-			'placeholder'    => JText::_('PLG_LOGINGUARD_TOTP_LBL_SETUP_PLACEHOLDER'),
+			'placeholder'    => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_SETUP_PLACEHOLDER'),
 			// Label to show above the HTML input box. Leave empty if you don't need it.
-			'label'          => JText::_('PLG_LOGINGUARD_TOTP_LBL_SETUP_LABEL'),
+			'label'          => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_SETUP_LABEL'),
 			// Custom HTML. Only used when field_type = custom.
 			'html'           => '',
 			// Should I show the submit button (apply the TFA setup)? Only applies in the Add page.
@@ -181,23 +246,33 @@ class PlgLoginguardPushbullet extends JPlugin
 			return array();
 		}
 
-		// TODO I also need to check if I have a PushBullet token...
-
 		$session = JFactory::getSession();
 
 		// Load the options from the record (if any)
-		$options    = $this->_decodeRecordOptions($record);
-		$optionsKey = isset($options['key']) ? $options['key'] : '';
-		$key        = $optionsKey;
+		$options = $this->_decodeRecordOptions($record);
+		$key     = isset($options['key']) ? $options['key'] : '';
+		$token   = isset($options['toke']) ? $options['tokens'] : '';
 
 		// If there is no key in the options fetch one from the session
 		if (empty($key))
 		{
-			$key = $session->get('totp.key', null, 'com_loginguard');
+			$key = $session->get('pushbullet.key', null, 'com_loginguard');
+		}
+
+		// If there is no key in the options fetch one from the session
+		if (empty($token))
+		{
+			$token = $session->get('pushbullet.token', null, 'com_loginguard');
 		}
 
 		// If there is still no key in the options throw an error
 		if (empty($key))
+		{
+			throw new RuntimeException(JText::_('JERROR_ALERTNOAUTHOR'), 403);
+		}
+
+		// If there is still no token in the options throw an error
+		if (empty($token))
 		{
 			throw new RuntimeException(JText::_('JERROR_ALERTNOAUTHOR'), 403);
 		}
@@ -219,7 +294,7 @@ class PlgLoginguardPushbullet extends JPlugin
 
 		if (!$isValid)
 		{
-			throw new RuntimeException(JText::_('PLG_LOGINGUARD_TOTP_ERR_INVALID_CODE'), 500);
+			throw new RuntimeException(JText::_('PLG_LOGINGUARD_PUSHBULLET_ERR_INVALID_CODE'), 500);
 		}
 
 		// The code is valid. Unset the key from the session.
@@ -319,9 +394,9 @@ class PlgLoginguardPushbullet extends JPlugin
 	 */
 	private function _decodeRecordOptions($record)
 	{
-		// TODO I also need to decode the PushBullet OAuth token...
 		$options = array(
-			'key' => ''
+			'key'   => '',
+			'token' => ''
 		);
 
 		if (!empty($record->options))
@@ -339,7 +414,131 @@ class PlgLoginguardPushbullet extends JPlugin
 		return $options;
 	}
 
-	// TODO Handle OAuth2 callback
+	/**
+	 * Creates a new TOTP code based on secret key $key and sends it to the user via PushBullet using the access token
+	 * $token.
+	 *
+	 * @param   string  $key    The TOTP secret key
+	 * @param   string  $token  The PushBullet access token
+	 * @param   JUser   $user   The Joomla! user to use
+	 *
+	 * @return  void
+	 *
+	 * @throws  LoginGuardPushbulletApiException  If something goes wrong
+	 */
+	public function sendCode($key, $token, JUser $user = null)
+	{
+		// Make sure we have a user
+		if (!is_object($user) || !($user instanceof JUser))
+		{
+			$user = JFactory::getUser();
+		}
+
+		// Get the API objects
+		$totp = new LoginGuardAuthenticator();
+		$pushBullet = new LoginGuardPushbulletApi($token);
+
+		// Create the list of variable replacements
+		$code = $totp->getCode($key);
+
+		$replacements = array(
+			'[CODE]'     => $code,
+			'[SITENAME]' => '',
+			'[SITEURL]'  => JUri::base(),
+			'[USERNAME]' => $user->username,
+			'[EMAIL]'    => $user->email,
+			'[FULLNAME]' => $user->name,
+		);
+
+		// Get the title and body of the push message
+		$subject = JText::_('PLG_LOGINGUARD_PUSHBULLET_PUSH_TITLE');
+		$subject = str_ireplace(array_keys($replacements), array_values($replacements), $subject);
+		$message = JText::_('PLG_LOGINGUARD_PUSHBULLET_PUSH_MESSAGE');
+		$message = str_ireplace(array_keys($replacements), array_values($replacements), $message);
+
+		// Push the message to all of the user's devices
+		$pushBullet->pushNote('', $subject, $message);
+	}
+
+	/**
+	 * Handle the OAuth2 callback
+	 *
+	 * The user is redirected to the callback URL by PushBullet itself. The token is appended at the end of the URL as
+	 * a URL fragment, e.g.
+	 * http://www.example.com/index.php?option=com_loginguard&task=callback.callback&method=pushbullet&backend=0#access_token=o.RUe7IZgC6384GrI1
+	 * We check the fragment and keep the part after the first equals as the PushBullet token. What happens next depends
+	 * on the backend URL parameter.
+	 *
+	 * If backend=0 the 2SV setup was initiated by the frontend of the site. Therefore we just need to save the token in
+	 * the session and redirect the user back to the 2SV method setup page. This will be picked up by the
+	 * onLoginGuardTfaGetSetup method and a code will be sent to the user which he has to enter to finalize the setup.
+	 *
+	 * If backend=1 the 2SV setup was initiated by the backend of the site. The callback is always in the frontend of
+	 * the site since PushBullet checks the path of the URL versus what has been configured. However, since I'm in the
+	 * frontend of the site I cannot set a session variable and read it from the backend. In this case I redirect the
+	 * browser to the backend callback URL passing the token as a query string parameter. When this is detected the
+	 * token is read from the q.s.p. and the rest of the process described above (save to session and redirect to setup
+	 * page) takes place.
+	 *
+	 * @param   string  $method  The 2SV method used during the callback.
+	 *
+	 * @return  bool  Only returns false when this plugin is not supposed to handle the request. Redirects the
+	 *                application otherwise (no return value).
+	 */
+	public function onLoginGuardCallback($method)
+	{
+		if ($method != $this->tfaMethodName)
+		{
+			return false;
+		}
+
+		$app   = JFactory::getApplication();
+		$input = $app->input;
+
+		// Should I redirect to the back-end?
+		$backend = $input->getInt('backend', 0);
+
+		// Do I have a token access variable?
+		$token = $input->getBase64('token', null);
+
+		// If I have no token and it's the front-end I have received a token in the URL fragment from PushBullet
+		JLoader::register('LoginGuardHelperTfa', JPATH_SITE . '/components/com_loginguard/helpers/tfa.php');
+
+		if (empty($token) && !LoginGuardHelperTfa::isAdminPage())
+		{
+			// The returned URL ends in something like #access_token=o.RUe7IZgC6384GrI1
+			$uri = JUri::getInstance();
+			$fragment = $uri->getFragment();
+			list(, $token) = explode('=', $fragment);
+		}
+
+		// Do I have to redirect to the backend?
+		if ($backend == 1)
+		{
+			$redirectURL = JUri::base() . 'administrator/index.php?option=com_loginguard&task=callback.callback&method=pushbullet&token=' . $token;
+			$app->redirect($redirectURL);
+
+			// Just to make IDEs happy. The application is closed above during the redirection.
+			return false;
+		}
+
+		// Set the token to the session
+		$session = JFactory::getSession();
+		$session->set('pushbullet.token', $token, 'com_loginguard');
+
+		// Get the User ID for the editor page
+		$user_id = $session->get('pushbullet.user_id', null, 'com_loginguard');
+		$session->set('pushbullet.user_id', null, 'com_loginguard');
+
+		// Redirect to the editor page
+		$userPart = empty($user_id) ? '' : ('&user_id='. $user_id);
+		$redirectURL = JRoute::_('index.php?option=com_loginguard&task=method.add&method=pushbullet' . $userPart);
+
+		$app->redirect($redirectURL);
+
+		// Just to make IDEs happy. The application is closed above during the redirection.
+		return false;
+	}
 
 	// TODO Handle AJAX
 }

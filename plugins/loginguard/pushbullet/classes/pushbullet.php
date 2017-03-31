@@ -315,7 +315,6 @@ class LoginGuardPushbulletApi
 		$this->_curlCallback = $callback;
 	}
 
-
 	/**
 	 * Parse recipient.
 	 *
