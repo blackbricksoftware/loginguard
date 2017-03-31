@@ -15,11 +15,11 @@
 
     <files>
         <filename plugin="pushbullet">pushbullet.php</filename>
+        <folder>classes</folder>
     </files>
 
     <media folder="media" destination="plg_loginguard_pushbullet">
         <folder>images</folder>
-        <folder>classes</folder>
     </media>
 
     <languages folder="language">
@@ -35,7 +35,7 @@
                         type="text"
                         label="PLG_LOGINGUARD_PUSHBULLET_CONFIG_CLIENTID_LABEL"
                         description="PLG_LOGINGUARD_PUSHBULLET_CONFIG_CLIENTID_DESC"
-                        default="1"
+                        default=""
                         filter="int"
                 />
 
