@@ -311,7 +311,8 @@ class PlgLoginguardPushbullet extends JPlugin
 
 		// Return the configuration to be serialized
 		return array(
-			'key' => $key
+			'key'   => $key,
+			'token' => $token
 		);
 	}
 
@@ -331,9 +332,14 @@ class PlgLoginguardPushbullet extends JPlugin
 			return array();
 		}
 
+		// Load the options from the record (if any)
+		$options = $this->_decodeRecordOptions($record);
+		$key     = isset($options['key']) ? $options['key'] : '';
+		$token   = isset($options['token']) ? $options['token'] : '';
 		$helpURL = $this->params->get('helpurl', 'https://github.com/akeeba/loginguard/wiki/Pushbullet');
 
-		// TODO We need to show the button to send the code through an AJAX call
+		// Send a push message with a new code and ask the user to enter it.
+		$this->sendCode($key, $token);
 
 		return array(
 			// Custom HTML to display above the TFA form
@@ -343,9 +349,9 @@ class PlgLoginguardPushbullet extends JPlugin
 			// The type attribute for the HTML input box. Typically "text" or "password". Use any HTML5 input type.
 			'input_type'   => 'text',
 			// Placeholder text for the HTML input box. Leave empty if you don't need it.
-			'placeholder'  => '',
+			'placeholder'  => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_SETUP_PLACEHOLDER'),
 			// Label to show above the HTML input box. Leave empty if you don't need it.
-			'label'        => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_LABEL'),
+			'label'        => JText::_('PLG_LOGINGUARD_PUSHBULLET_LBL_SETUP_LABEL'),
 			// Custom HTML. Only used when field_type = custom.
 			'html'         => '',
 			// Custom HTML to display below the TFA form
@@ -546,6 +552,4 @@ class PlgLoginguardPushbullet extends JPlugin
 		// Just to make IDEs happy. The application is closed above during the redirection.
 		return false;
 	}
-
-	// TODO Handle AJAX
 }
