@@ -26,6 +26,14 @@ if (!class_exists('LoginGuardPushbulletApi', true))
 class PlgLoginguardPushbullet extends JPlugin
 {
 	/**
+	 * The PushBullet access token for the PushBullet account which owns the PushBullet OAuth Client defined by the
+	 * clientId and secret below.
+	 *
+	 * @var   string
+	 */
+	public $accessToken;
+
+	/**
 	 * PushBullet OAuth2 Client ID
 	 *
 	 * @var   string
@@ -60,10 +68,11 @@ class PlgLoginguardPushbullet extends JPlugin
 
 		// Load the PushBullet API parameters
 		/** @var \Joomla\Registry\Registry $params */
-		$params  = $this->params;
+		$params = $this->params;
 
-		$this->clientId = $params->get('client_id', null);
-		$this->secret   = $params->get('secret', null);
+		$this->accessToken = $params->get('access_token', null);
+		$this->clientId    = $params->get('client_id', null);
+		$this->secret      = $params->get('secret', null);
 
 		// Load the language files
 		$this->loadLanguage();
@@ -72,12 +81,12 @@ class PlgLoginguardPushbullet extends JPlugin
 	/**
 	 * Gets the identity of this TFA method
 	 *
-	 * @return  array
+	 * @return  array|false
 	 */
 	public function onLoginGuardTfaGetMethod()
 	{
 		// This plugin is disabled if you haven't configured it yet
-		if (empty($this->clientId) || empty($this->secret))
+		if (empty($this->accessToken) || empty($this->clientId) || empty($this->secret))
 		{
 			return false;
 		}
@@ -463,17 +472,15 @@ class PlgLoginguardPushbullet extends JPlugin
 	/**
 	 * Handle the OAuth2 callback
 	 *
-	 * The user is redirected to the callback URL by PushBullet itself. The token is appended at the end of the URL as
-	 * a URL fragment, e.g.
-	 * http://www.example.com/index.php?option=com_loginguard&task=callback.callback&method=pushbullet&backend=0#access_token=o.RUe7IZgC6384GrI1
-	 * We check the fragment and keep the part after the first equals as the PushBullet token. What happens next depends
-	 * on the backend URL parameter.
+	 * The user is redirected to the callback URL by PushBullet itself. A code is sent back as a query string parameter.
+	 * The code is sent back to PushBullet and we are given back a token. What happens next depends on the state URL
+	 * parameter.
 	 *
-	 * If backend=0 the 2SV setup was initiated by the frontend of the site. Therefore we just need to save the token in
+	 * If state=0 the 2SV setup was initiated by the frontend of the site. Therefore we just need to save the token in
 	 * the session and redirect the user back to the 2SV method setup page. This will be picked up by the
 	 * onLoginGuardTfaGetSetup method and a code will be sent to the user which he has to enter to finalize the setup.
 	 *
-	 * If backend=1 the 2SV setup was initiated by the backend of the site. The callback is always in the frontend of
+	 * If state=1 the 2SV setup was initiated by the backend of the site. The callback is always in the frontend of
 	 * the site since PushBullet checks the path of the URL versus what has been configured. However, since I'm in the
 	 * frontend of the site I cannot set a session variable and read it from the backend. In this case I redirect the
 	 * browser to the backend callback URL passing the token as a query string parameter. When this is detected the
@@ -496,20 +503,20 @@ class PlgLoginguardPushbullet extends JPlugin
 		$input = $app->input;
 
 		// Should I redirect to the back-end?
-		$backend = $input->getInt('backend', 0);
+		$backend = $input->getInt('state', 0);
 
 		// Do I have a token access variable?
-		$token = $input->getBase64('token', null);
+		$token = $input->getString('token', null);
 
 		// If I have no token and it's the front-end I have received a token in the URL fragment from PushBullet
 		JLoader::register('LoginGuardHelperTfa', JPATH_SITE . '/components/com_loginguard/helpers/tfa.php');
 
 		if (empty($token) && !LoginGuardHelperTfa::isAdminPage())
 		{
-			// The returned URL ends in something like #access_token=o.RUe7IZgC6384GrI1
-			$uri = JUri::getInstance();
-			$fragment = $uri->getFragment();
-			list(, $token) = explode('=', $fragment);
+			// The returned URL has a code query string parameter I need to use to retrieve a token
+			$code  = $input->getString('code', null);
+			$api   = new LoginGuardPushbulletApi($this->accessToken);
+			$token = $api->getToken($code, $this->clientId, $this->secret);
 		}
 
 		// Do I have to redirect to the backend?
@@ -532,7 +539,7 @@ class PlgLoginguardPushbullet extends JPlugin
 
 		// Redirect to the editor page
 		$userPart = empty($user_id) ? '' : ('&user_id='. $user_id);
-		$redirectURL = JRoute::_('index.php?option=com_loginguard&task=method.add&method=pushbullet' . $userPart);
+		$redirectURL = 'index.php?option=com_loginguard&task=method.add&method=pushbullet' . $userPart;
 
 		$app->redirect($redirectURL);
 

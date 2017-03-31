@@ -32,12 +32,19 @@
         <fields name="params">
             <fieldset name="basic">
                 <field
+                        name="access_token"
+                        type="text"
+                        label="PLG_LOGINGUARD_PUSHBULLET_CONFIG_TOKEN_LABEL"
+                        description="PLG_LOGINGUARD_PUSHBULLET_CONFIG_TOKEN_DESC"
+                        default=""
+                />
+
+                <field
                         name="client_id"
                         type="text"
                         label="PLG_LOGINGUARD_PUSHBULLET_CONFIG_CLIENTID_LABEL"
                         description="PLG_LOGINGUARD_PUSHBULLET_CONFIG_CLIENTID_DESC"
                         default=""
-                        filter="base64"
                 />
 
                 <field
@@ -46,7 +53,6 @@
                         label="PLG_LOGINGUARD_PUSHBULLET_CONFIG_SECRET_LABEL"
                         description="PLG_LOGINGUARD_PUSHBULLET_CONFIG_SECRET_DESC"
                         default=""
-                        filter="base64"
                 />
 
                 <field

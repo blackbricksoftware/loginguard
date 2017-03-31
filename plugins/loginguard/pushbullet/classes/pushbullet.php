@@ -43,6 +43,7 @@ class LoginGuardPushbulletApi
 	private $_apiKey;
 	private $_curlCallback;
 
+	const URL_TOKEN = 'https://api.pushbullet.com/oauth2/token';
 	const URL_PUSHES = 'https://api.pushbullet.com/v2/pushes';
 	const URL_DEVICES = 'https://api.pushbullet.com/v2/devices';
 	const URL_CONTACTS = 'https://api.pushbullet.com/v2/contacts';
@@ -69,6 +70,34 @@ class LoginGuardPushbulletApi
 			throw new LoginGuardPushbulletApiException('cURL library is not loaded.');
 		}
 	}
+
+	/**
+	 * Get the access token for a PushBullet OAuth Client given a redirection code.
+	 *
+	 * See https://docs.pushbullet.com/#for-client-side-apps-responsetypetoken
+	 *
+	 * @param   string  $code      The redirection code received by PushBullet
+	 * @param   string  $clientId  The OAuth Client's client_id
+	 * @param   string  $secret    The OAuth Client's client_secret
+	 *
+	 * @return  string  The access token for this user
+	 *
+	 * @throws  LoginGuardPushbulletApiException  When something goes wrong
+	 */
+	public function getToken($code, $clientId, $secret)
+	{
+		$data = array(
+			'grant_type' => 'authorization_code',
+		    'client_id' => $clientId,
+		    'client_secret' => $secret,
+		    'code' => $code,
+		);
+
+		$response = $this->_curlRequest(self::URL_TOKEN, 'POST', $data, true);
+
+		return $response->access_token;
+	}
+
 
 	/**
 	 * Push a note.
@@ -366,9 +395,11 @@ class LoginGuardPushbulletApi
 
 		curl_setopt($curl, CURLOPT_URL, $url);
 
+		$headers = array();
+
 		if ($auth)
 		{
-			curl_setopt($curl, CURLOPT_USERPWD, $this->_apiKey);
+			$headers[] = 'Access-Token: ' . $this->_apiKey;
 		}
 
 		curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
@@ -378,13 +409,16 @@ class LoginGuardPushbulletApi
 			if ($sendAsJSON)
 			{
 				$data = json_encode($data);
-				curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-					'Content-Type: application/json',
-					'Content-Length: ' . strlen($data)
-				));
+				$headers[] = 'Content-Type: application/json';
+				$headers[] = 'Content-Length: ' . strlen($data);
 			}
 
 			curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+		}
+
+		if (!empty($headers))
+		{
+			curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 		}
 
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
