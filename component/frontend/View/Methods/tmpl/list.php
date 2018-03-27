@@ -67,7 +67,7 @@ $token = $this->getContainer()->platform->getToken();
                                         </div>
 
                                         <div class="loginguard-methods-list-method-record-edit-container">
-                                            <a href="<?php echo JRoute::_('index.php?option=com_loginguard&task=method.edit&id=' . (int) $record->id . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id)?>"
+                                            <a href="<?php echo JRoute::_('index.php?option=com_loginguard&view=method&task=edit&id=' . (int) $record->id . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id)?>"
                                                class="loginguard-methods-list-method-record-edit akeeba-btn--teal--small"
                                             >
                                                 <span class="akion-edit"></span>
@@ -80,7 +80,7 @@ $token = $this->getContainer()->platform->getToken();
                                         <div>
 	                                        <?php if ($methodName == 'backupcodes'): ?>
                                                 <div class="loginguard-methods-list-method-backupcodes-preview akeeba-block--info">
-                                                    <?php echo JText::sprintf('COM_LOGINGUARD_LBL_BACKUPCODES_PRINT_PROMPT', JRoute::_('index.php?option=com_loginguard&task=method.edit&id=' . (int) $record->id . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id)) ?>
+                                                    <?php echo JText::sprintf('COM_LOGINGUARD_LBL_BACKUPCODES_PRINT_PROMPT', JRoute::_('index.php?option=com_loginguard&view=method&task=edit&id=' . (int) $record->id . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id)) ?>
                                                 </div>
 	                                        <?php endif; ?>
                                             <div>
@@ -99,7 +99,7 @@ $token = $this->getContainer()->platform->getToken();
 
                                         <div class="loginguard-methods-list-method-record-delete-container">
 	                                        <?php if ($method['canDisable']): ?>
-                                                <a href="<?php echo JRoute::_('index.php?option=com_loginguard&task=method.delete&id=' . (int) $record->id  . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id . '&' . $token . '=1')?>"
+                                                <a href="<?php echo JRoute::_('index.php?option=com_loginguard&view=method&task=delete&id=' . (int) $record->id  . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id . '&' . $token . '=1')?>"
                                                    class="loginguard-methods-list-method-record-delete akeeba-btn--red--small"
                                                 >
                                                     <span class="akion-trash-b"></span>
@@ -114,7 +114,7 @@ $token = $this->getContainer()->platform->getToken();
 
 		            <?php if (empty($method['active']) || $method['allowMultiple']): ?>
                         <div class="loginguard-methods-list-method-addnew-container">
-                            <a href="<?php echo JRoute::_('index.php?option=com_loginguard&task=method.add&method=' . $this->escape(urlencode($method['name'])) . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id)?>"
+                            <a href="<?php echo JRoute::_('index.php?option=com_loginguard&view=method&task=add&method=' . $this->escape(urlencode($method['name'])) . ($this->returnURL ? '&returnurl=' . $this->escape(urlencode($this->returnURL)) : '') . '&user_id=' . $this->user->id)?>"
                                class="loginguard-methods-list-method-addnew akeeba-btn--grey"
                             >
                                 <span class="akion-android-add-circle"></span>

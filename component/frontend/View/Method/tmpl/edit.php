@@ -12,7 +12,7 @@ defined('_JEXEC') or die;
 
 JHtml::_('bootstrap.tooltip');
 
-$cancelURL = JRoute::_('index.php?option=com_loginguard&task=methods.display&user_id=' . $this->user->id);
+$cancelURL = JRoute::_('index.php?option=com_loginguard&view=methods&task=display&user_id=' . $this->user->id);
 
 if (!empty($this->returnURL))
 {
@@ -132,7 +132,8 @@ $token = $this->getContainer()->platform->getToken();
 
     <div>
         <input type="hidden" name="option" value="com_loginguard">
-        <input type="hidden" name="task" value="method.save">
+        <input type="hidden" name="view" value="method">
+        <input type="hidden" name="task" value="save">
         <input type="hidden" name="id" value="<?php echo (int) $this->record->id ?>">
         <input type="hidden" name="method" value="<?php echo $this->record->method ?>">
         <input type="hidden" name="user_id" value="<?php echo $this->user->id ?>">

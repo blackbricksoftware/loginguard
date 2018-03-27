@@ -8,6 +8,7 @@
 namespace Akeeba\LoginGuard\Admin\Dispatcher;
 
 // Protect from unauthorized access
+use Akeeba\LoginGuard\Site\Model\Captive;
 use FOF30\Dispatcher\Dispatcher as BaseDispatcher;
 use FOF30\Utils\ComponentVersion;
 use RuntimeException;
@@ -60,6 +61,27 @@ class Dispatcher extends BaseDispatcher
 		if ($this->input->getCmd('view', '') == '')
 		{
 			$this->getDefaultView();
+		}
+
+		// When we are in a captive login or forced TFA setup for a user we have to kill all modules
+		$session = $this->container->session;
+		$tfaCheckedFlag = $session->get('tfa_checked', 0, 'com_loginguard');
+		$forceTFAFlag = $session->get('tfa_forced', 0, 'com_loginguard');
+
+		if ($tfaCheckedFlag || $forceTFAFlag)
+		{
+			/** @var Captive $captiveModel */
+			$captiveModel = $this->container->factory->model('Captive');
+
+			try
+			{
+				$app          = \JFactory::getApplication();
+				$captiveModel->killAllModules($app);
+			}
+			catch (\Exception $e)
+			{
+				// Oops.
+			}
 		}
 	}
 

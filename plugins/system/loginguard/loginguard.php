@@ -153,8 +153,11 @@ class PlgSystemLoginguard extends JPlugin
 			return;
 		}
 
-		// We only kick in if the session flag is not set
-		if ($session->get('tfa_checked', 0, 'com_loginguard'))
+		// We only kick in if the session flags are not set
+		$tfaCheckedFlag = $session->get('tfa_checked', 0, 'com_loginguard');
+		$forceTFAFlag   = $session->get('tfa_forced', 0, 'com_loginguard');
+
+		if ($tfaCheckedFlag && !$forceTFAFlag)
 		{
 			return;
 		}
@@ -195,6 +198,13 @@ class PlgSystemLoginguard extends JPlugin
 		// If we are in the administrator section we only kick in when the user has backend access privileges
 		if ($isAdmin && !$user->authorise('core.login.admin'))
 		{
+			return;
+		}
+
+		if ($forceTFAFlag)
+		{
+			$this->forcedTFACaptiveLogin($app, $isAdmin, $user, $session);
+
 			return;
 		}
 
@@ -251,6 +261,16 @@ class PlgSystemLoginguard extends JPlugin
 		// If we're here someone just logged in but does not have TFA set up. Just flag him as logged in and continue.
 		$session->set('tfa_checked', 1, 'com_loginguard');
 
+		// Is the user forced to enable TFA?
+		if ($this->userRequiresTFASetup($user))
+		{
+			$session->set('tfa_forced', 1, 'com_loginguard');
+
+			$redirectionUrl = JRoute::_("index.php?option=com_loginguard&view=Methods&layout=firsttime", false);
+
+			JFactory::getApplication()->redirect($redirectionUrl);
+		}
+
 		// If we don't have TFA set up yet AND the user plugin had set up a redirection we will honour it
 		$redirectionUrl = $session->get('postloginredirect', null, 'com_loginguard');
 
@@ -260,6 +280,95 @@ class PlgSystemLoginguard extends JPlugin
 
 			JFactory::getApplication()->redirect($redirectionUrl);
 		}
+	}
+
+	/**
+	 * Does the user belong in a group which requires TFA to be set up?
+	 *
+	 * @param   JUser  $user  The Joomla! user object
+	 *
+	 * @return  bool
+	 *
+	 * @since  2.0.1
+	 */
+	public function userRequiresTFASetup($user)
+	{
+		// If the user already has TFA records they don't need to set up TFA, they have already done so.
+		if ($this->needsTFA($user))
+		{
+			return false;
+		}
+
+		// TODO Check a plugin flag: are we supposed to force users to enable TFA?
+
+		// TODO Check the groups the user belongs to. Is at least one of them in the list of user groups which require TFA?
+
+		return true;
+	}
+
+	/**
+	 * Enforce a captive page for users who are required to set up TFA on their account
+	 *
+	 * @param   JApplicationCms  $app
+	 * @param   bool             $isAdmin
+	 * @param   JUser            $user
+	 * @param   JSession         $session
+	 *
+	 *
+	 * @since   2.0.1
+	 *
+	 * @throws  Exception
+	 */
+	private function forcedTFACaptiveLogin($app, $isAdmin, $user, $session)
+	{
+		// We only kick in when the user has actually NOT set up TFA.
+		$needsTFA = $this->needsTFA($user);
+
+		if ($needsTFA)
+		{
+			$session->set('tfa_forced', 0, 'com_loginguard');
+
+			return;
+		}
+
+		// We only kick in if the option and task are not the ones of the captive page
+		$option = strtolower($app->input->getCmd('option'));
+		$task = strtolower($app->input->getCmd('task'));
+		$view = strtolower($app->input->getCmd('view'));
+
+		if ($option == 'com_loginguard')
+		{
+			// In case someone gets any funny ideas...
+			$app->input->set('tmpl', 'index');
+			$app->input->set('format', 'html');
+			$app->input->set('layout', null);
+
+			if (in_array($view, array('ajax', 'callback', 'method', 'methods')))
+			{
+				return;
+			}
+		}
+
+		// Allow the frontend user to log out (in case they are not ready to set up TFA just yet)
+		if (!$isAdmin && ($option == 'com_users') && ($task == 'user.logout'))
+		{
+			return;
+		}
+
+		// Allow the backend user to log out (in case they are not ready to set up TFA just yet)
+		if ($isAdmin && ($option == 'com_login') && ($task == 'logout'))
+		{
+			return;
+		}
+
+		// If we're here they have not set up TFA yet and they are on the wrong page. Let's redirect them.
+		$session->set('tfa_checked', 1, 'com_loginguard');
+
+		$session->set('tfa_forced', 1, 'com_loginguard');
+
+		$redirectionUrl = JRoute::_("index.php?option=com_loginguard&view=Methods&layout=firsttime", false);
+
+		JFactory::getApplication()->redirect($redirectionUrl);
 	}
 
 	/**

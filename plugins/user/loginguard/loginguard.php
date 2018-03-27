@@ -169,7 +169,7 @@ class plgUserLoginguard extends JPlugin
 		}
 
 		// Get the redirection URL
-		$url           = JRoute::_('index.php?option=com_loginguard&task=methods.display&layout=firsttime', false);
+		$url           = JRoute::_('index.php?option=com_loginguard&view=Methods&layout=firsttime', false);
 		$configuredUrl = $this->params->get('redirecturl', null);
 
 		if ($configuredUrl)

@@ -106,7 +106,7 @@ defined('_JEXEC') or die;
 		<?php echo JText::_('COM_LOGINGUARD_LBL_CONVERT_INFO'); ?>
     </p>
     <p>
-        <a href="<?php echo JRoute::_('index.php?option=com_loginguard&task=convert.convert&' . $this->getContainer()->platform->getToken() . '=1')?>"
+        <a href="<?php echo JRoute::_('index.php?option=com_loginguard&view=convert&task=convert&' . $this->getContainer()->platform->getToken() . '=1')?>"
            class="akeeba-btn--success--large">
             <span class="akion-play"></span>
 		    <?php echo JText::_('COM_LOGINGUARD_BTN_CONVERT'); ?>
@@ -184,7 +184,7 @@ defined('_JEXEC') or die;
         <?php echo JText::_('COM_LOGINGUARD_LBL_MANAGE_BODY'); ?>
     </p>
     <p>
-        <a href="<?php echo JRoute::_('index.php?option=com_loginguard&task=methods.display') ?>" class="akeeba-btn--primary--large">
+        <a href="<?php echo JRoute::_('index.php?option=com_loginguard&view=methods&task=display') ?>" class="akeeba-btn--primary--large">
             <span class="akion-android-lock"></span>
             <?php echo JText::_('COM_LOGINGUARD_BTN_MANAGE_SELF'); ?>
         </a>
