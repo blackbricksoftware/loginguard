@@ -144,8 +144,6 @@ class PlgLoginguardEncrypt extends JPlugin
 			return;
 		}
 
-		return;
-
 		$aes = new FOF30\Encrypt\Aes($this->password, 128, 'cbc');
 		$record->options = '###AES128###' . $aes->encryptString($record->options);
 	}

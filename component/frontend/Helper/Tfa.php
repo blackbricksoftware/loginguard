@@ -142,6 +142,8 @@ abstract class Tfa
 				$container                      = Container::getInstance('com_loginguard');
 				self::$recordsPerUser[$user_id] = array_map(function ($record) use ($container) {
 					$container->platform->runPlugins('onLoginGuardBeforeSaveRecord', [&$record]);
+
+					return $record;
 				}, $records);
 			}
 			catch (Exception $e)
