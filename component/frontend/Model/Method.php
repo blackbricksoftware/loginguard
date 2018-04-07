@@ -98,6 +98,15 @@ class Method extends Model
 		$defaultRecord = $this->getDefaultRecord($user);
 		$id            = (int) $this->getState('id', 0);
 
+		/**
+		 * Call onLoginGuardBeforeReadRecord($user)
+		 *
+		 * This event is executed before we attempt to read the record from the database. This event is meant to be only
+		 * informative. You cannot modify any data. Moreover, it's not yet guaranteed that anything will be read off the
+		 * database just yet.
+		 */
+		$this->container->platform->runPlugins('onLoginGuardBeforeReadRecord', [$user, $id]);
+
 		if ($id <= 0)
 		{
 			return $defaultRecord;
@@ -118,9 +127,29 @@ class Method extends Model
 			return $defaultRecord;
 		}
 
+		/**
+		 * Call onLoginGuardAfterReadRecord($user, &$record)
+		 *
+		 * This event fires right after a record has been successfully read from the database. You have the chance to
+		 * modify the record. At this point we have not yet checked whether the record's method refers to an existing,
+		 * activated LoginGuard authentication method plugin.
+		 */
+		$this->container->platform->runPlugins('onLoginGuardAfterReadRecord', [$user, &$record]);
+
 		if (!$this->methodExists($record->method))
 		{
 			return $defaultRecord;
+		}
+
+		// Did a plugin set the flag telling us that we must save the record again?
+		if (isset($record->must_save) && ($record->must_save === 1))
+		{
+			unset($record->must_save);
+
+			// We save a clone of the original object since plugins may change the content of the record on save.
+			$recordToSave = clone $record;
+
+			$this->saveRecord($recordToSave);
 		}
 
 		return $record;
@@ -210,6 +239,15 @@ class Method extends Model
 
 		$isNewRecord = empty($record->id);
 
+		/**
+		 * Call onLoginGuardBeforeSaveRecord(&$record, $input).
+		 *
+		 * This is your last chance to modify the record being saved to the database. At this point it is NOT guaranteed
+		 * that the changes you see will be committed to the database. Use this event only to modify $record itself. Do
+		 * not make decisions based on its contents.
+		 */
+		$this->container->platform->runPlugins('onLoginGuardBeforeSaveRecord', [&$record]);
+
 		if ($isNewRecord)
 		{
 			// Update the Created On, UA and IP columns
@@ -239,6 +277,14 @@ class Method extends Model
 		{
 			throw new RuntimeException($db->getErrorMsg());
 		}
+
+		/**
+		 * Call onLoginGuardAfterSaveRecord($record).
+		 *
+		 * You cannot modify the record any more. The purpose of this event is informative, e.g. if you need to sync the
+		 * TFA preferences with third party software / services. If you need to modify the record use the Before event.
+		 */
+		$this->container->platform->runPlugins('onLoginGuardAfterSaveRecord', [$record]);
 
 		// If that was the very first method we added for that user let's also create their backup codes
 		if ($isNewRecord && !count($records))
