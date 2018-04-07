@@ -222,6 +222,7 @@ class Captive extends Model
 		try
 		{
 			$record = $db->setQuery($query)->loadObject();
+			$this->container->platform->runPlugins('onLoginGuardAfterReadRecord', [&$record]);
 		}
 		catch (Exception $e)
 		{

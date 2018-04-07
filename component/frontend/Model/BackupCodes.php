@@ -60,6 +60,7 @@ class BackupCodes extends Model
 		try
 		{
 			$record = $db->setQuery($query)->loadObject();
+			$this->getContainer()->platform->runPlugins('onLoginGuardAfterReadRecord', [&$record]);
 		}
 		catch (Exception $e)
 		{
@@ -98,14 +99,16 @@ class BackupCodes extends Model
 			// Try to load the record
 			$db    = $this->container->db;
 			$query = $db->getQuery(true)
-				->select($db->qn('options'))
+				->select('*')
 				->from($db->qn('#__loginguard_tfa'))
 				->where($db->qn('user_id') . ' = ' . $db->q($user->id))
 				->where($db->qn('method') . ' = ' . $db->q('backupcodes'));
 
 			try
 			{
-				$json = $db->setQuery($query)->loadResult();
+				$record = $db->setQuery($query)->loadObject();
+				$this->getContainer()->platform->runPlugins('onLoginGuardAfterReadRecord', [&$record]);
+				$json = $record->options;
 			}
 			catch (Exception $e)
 			{
@@ -326,50 +329,57 @@ class BackupCodes extends Model
 		// Try to load existing backup codes
 		$existingCodes = $this->getBackupCodes($user);
 		$db            = $this->container->db;
-		$query         = $db->getQuery(true);
 		$jNow          = $this->container->platform->getDate();
 		$json          = json_encode($codes);
 
+		$record = (object) [
+			'id'         => null,
+			'user_id'    => $user->id,
+			'title'      => 'Backup Codes',
+			'method'     => 'backupcodes',
+			'default'    => 0,
+			'created_on' => $jNow->toSql(),
+			'options'    => $json,
+		];
+
+		$this->container->platform->runPlugins('onLoginGuardBeforeSaveRecord', [&$record]);
+
 		if (is_null($existingCodes))
 		{
-			// If the backup codes is null insert a new record
-			$query->insert($db->qn('#__loginguard_tfa'))
-				->columns(array(
-					$db->qn('user_id'),
-					$db->qn('title'),
-					$db->qn('method'),
-					$db->qn('default'),
-					$db->qn('created_on'),
-					$db->qn('options'),
-				))->values(
-					$db->q($user->id) . ', ' .
-					$db->q('Backup Codes') . ', ' .
-					$db->q('backupcodes') . ', ' .
-					$db->q(0) . ', ' .
-					$db->q($jNow->toSql()) . ', ' .
-					$db->q($json)
-				);
-		}
-		else
-		{
-			// Otherwise update the existing db record
-			$query->update($db->qn('#__loginguard_tfa'))
-				->set(array(
-					$db->qn('options') . ' = ' . $db->q($json)
-				))->where($db->qn('user_id') . ' = ' . $db->q($user->id))
-				->where($db->qn('method') . ' = ' . $db->q('backupcodes'));
-		}
-
-		try
-		{
-			if ($db->setQuery($query)->execute() === false)
+			try
+			{
+				if ($db->insertObject('#__loginguard_tfa', $record, 'id') === false)
+				{
+					return false;
+				}
+			}
+			catch (Exception $e)
 			{
 				return false;
 			}
 		}
-		catch (Exception $e)
+		else
 		{
-			return false;
+			// Otherwise update the existing db record
+			$query = $db->getQuery(true);
+			$query->update($db->qn('#__loginguard_tfa'))
+			      ->set(array(
+				      $db->qn('options') . ' = ' . $db->q($record->options),
+			      ))->where($db->qn('user_id') . ' = ' . $db->q($user->id))
+			      ->where($db->qn('method') . ' = ' . $db->q('backupcodes'))
+			;
+
+			try
+			{
+				if ($db->setQuery($query)->execute() === false)
+				{
+					return false;
+				}
+			}
+			catch (Exception $e)
+			{
+				return false;
+			}
 		}
 
 		// Finally, update the cache

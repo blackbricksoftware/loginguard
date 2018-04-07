@@ -98,15 +98,6 @@ class Method extends Model
 		$defaultRecord = $this->getDefaultRecord($user);
 		$id            = (int) $this->getState('id', 0);
 
-		/**
-		 * Call onLoginGuardBeforeReadRecord($user)
-		 *
-		 * This event is executed before we attempt to read the record from the database. This event is meant to be only
-		 * informative. You cannot modify any data. Moreover, it's not yet guaranteed that anything will be read off the
-		 * database just yet.
-		 */
-		$this->container->platform->runPlugins('onLoginGuardBeforeReadRecord', [$user, $id]);
-
 		if ($id <= 0)
 		{
 			return $defaultRecord;
@@ -134,7 +125,7 @@ class Method extends Model
 		 * modify the record. At this point we have not yet checked whether the record's method refers to an existing,
 		 * activated LoginGuard authentication method plugin.
 		 */
-		$this->container->platform->runPlugins('onLoginGuardAfterReadRecord', [$user, &$record]);
+		$this->container->platform->runPlugins('onLoginGuardAfterReadRecord', [&$record]);
 
 		if (!$this->methodExists($record->method))
 		{
@@ -277,14 +268,6 @@ class Method extends Model
 		{
 			throw new RuntimeException($db->getErrorMsg());
 		}
-
-		/**
-		 * Call onLoginGuardAfterSaveRecord($record).
-		 *
-		 * You cannot modify the record any more. The purpose of this event is informative, e.g. if you need to sync the
-		 * TFA preferences with third party software / services. If you need to modify the record use the Before event.
-		 */
-		$this->container->platform->runPlugins('onLoginGuardAfterSaveRecord', [$record]);
 
 		// If that was the very first method we added for that user let's also create their backup codes
 		if ($isNewRecord && !count($records))

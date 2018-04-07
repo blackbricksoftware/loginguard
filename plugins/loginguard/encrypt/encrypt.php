@@ -154,14 +154,13 @@ class PlgLoginguardEncrypt extends JPlugin
 	/**
 	 * Decrypt the LoginGuard configuration after reading it from the database.
 	 *
-	 * @param   JUser   $user    The user for which we are reading the LoginGuard record
 	 * @param   object  $record  The LoginGuard record we read from the database
 	 *
 	 * @return  void
 	 *
 	 * @since   2.0.2
 	 */
-	public function onLoginGuardAfterReadRecord($user, &$record)
+	public function onLoginGuardAfterReadRecord(&$record)
 	{
 		if (empty($this->password))
 		{
@@ -199,16 +198,16 @@ class PlgLoginguardEncrypt extends JPlugin
 
 		if (file_exists($keyFile))
 		{
-			include_once $keyFile;
+			@include_once $keyFile;
 		}
 
 		if (!defined('AKEEBA_LOGINGUARD_ENCRYPT_KEY'))
 		{
 			$this->generateKey($keyFile);
 
-			if (include_once($keyFile) === false)
+			if (file_exists($keyFile))
 			{
-				return '';
+				@include_once $keyFile;
 			}
 		}
 
@@ -233,7 +232,7 @@ class PlgLoginguardEncrypt extends JPlugin
 	{
 		$key = JUserHelper::genRandomPassword(32);
 
-		$fileData = '<?' . "php\ndefined('_JEXEC') or die;\n\n";
+		$fileData = '<?' . "php defined('_JEXEC') or die;\n";
 		$fileData .= "define('AKEEBA_LOGINGUARD_ENCRYPT_KEY', '$key');\n";
 
 		if (@file_put_contents($keyFile, $fileData) !== false)
