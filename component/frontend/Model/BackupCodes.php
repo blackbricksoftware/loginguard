@@ -8,6 +8,7 @@
 namespace Akeeba\LoginGuard\Site\Model;
 
 use Exception;
+use FOF30\Container\Container;
 use FOF30\Model\Model;
 use JCrypt;
 use Joomla\CMS\User\User;
@@ -61,6 +62,13 @@ class BackupCodes extends Model
 		{
 			$record = $db->setQuery($query)->loadObject();
 			$this->getContainer()->platform->runPlugins('onLoginGuardAfterReadRecord', [&$record]);
+
+			if (isset($record->must_save) && ($record->must_save === 1))
+			{
+				/** @var Method $methodModel */
+				$methodModel = $this->getContainer()->factory->model('Method')->tmpInstance();
+				$methodModel->saveRecord($record);
+			}
 		}
 		catch (Exception $e)
 		{
@@ -109,6 +117,13 @@ class BackupCodes extends Model
 				$record = $db->setQuery($query)->loadObject();
 				$this->getContainer()->platform->runPlugins('onLoginGuardAfterReadRecord', [&$record]);
 				$json = $record->options;
+
+				if (isset($record->must_save) && ($record->must_save === 1))
+				{
+					/** @var Method $methodModel */
+					$methodModel = $this->getContainer()->factory->model('Method')->tmpInstance();
+					$methodModel->saveRecord($record);
+				}
 			}
 			catch (Exception $e)
 			{

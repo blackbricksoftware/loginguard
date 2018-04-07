@@ -144,7 +144,6 @@ class PlgLoginguardEncrypt extends JPlugin
 			return;
 		}
 
-		// TODO Remove me
 		return;
 
 		$aes = new FOF30\Encrypt\Aes($this->password, 128, 'cbc');
@@ -166,9 +165,6 @@ class PlgLoginguardEncrypt extends JPlugin
 		{
 			return;
 		}
-
-		// TODO Remove me
-		return;
 
 		if (substr($record->options, 0, 12) != '###AES128###')
 		{

@@ -119,7 +119,7 @@ class Method extends Model
 		}
 
 		/**
-		 * Call onLoginGuardAfterReadRecord($user, &$record)
+		 * Call onLoginGuardAfterReadRecord(&$record)
 		 *
 		 * This event fires right after a record has been successfully read from the database. You have the chance to
 		 * modify the record. At this point we have not yet checked whether the record's method refers to an existing,

@@ -832,6 +832,13 @@ JS;
 		{
 			$container->platform->runPlugins('onLoginGuardAfterReadRecord', [&$result]);
 
+			if (isset($result->must_save) && ($result->must_save === 1))
+			{
+				/** @var \Akeeba\LoginGuard\Site\Model\Method $methodModel */
+				$methodModel = $container->factory->model('Method')->tmpInstance();
+				$methodModel->saveRecord($record);
+			}
+
 			$options = $this->_decodeRecordOptions($result);
 
 			if (!isset($options['registrations']) || empty($options['registrations']))
@@ -886,6 +893,14 @@ JS;
 		foreach ($records as $aRecord)
 		{
 			$container->platform->runPlugins('onLoginGuardAfterReadRecord', [&$aRecord]);
+
+			if (isset($aRecord->must_save) && ($aRecord->must_save === 1))
+			{
+				/** @var \Akeeba\LoginGuard\Site\Model\Method $methodModel */
+				$methodModel = $container->factory->model('Method')->tmpInstance();
+				$methodModel->saveRecord($aRecord);
+			}
+
 			$recordOptions       = $this->_decodeRecordOptions($aRecord);
 			$recordRegistrations = isset($recordOptions['registrations']) ? $recordOptions['registrations'] : array();
 			$registrations       = array_merge($registrations, $recordRegistrations);

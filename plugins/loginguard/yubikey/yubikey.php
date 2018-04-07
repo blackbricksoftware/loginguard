@@ -335,6 +335,13 @@ class PlgLoginguardYubikey extends JPlugin
 			{
 				$container->platform->runPlugins('onLoginGuardAfterReadRecord', [&$aRecord]);
 
+				if (isset($aRecord->must_save) && ($aRecord->must_save === 1))
+				{
+					/** @var \Akeeba\LoginGuard\Site\Model\Method $methodModel */
+					$methodModel = $container->factory->model('Method')->tmpInstance();
+					$methodModel->saveRecord($aRecord);
+				}
+
 				if ($this->validateAgainstRecord($aRecord, $code))
 				{
 					return true;
