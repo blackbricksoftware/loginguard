@@ -68,44 +68,7 @@ if (!defined('FOF30_INCLUDED') && !@include_once(JPATH_LIBRARIES . '/fof30/inclu
 /**
  * Akeeba LoginGuard Plugin for encrypting the data at rest.
  *
- * This plugin intercepts the LoginGuard TFA records read and written to the database, applying cryptography to the
- * "options" property which stores the configuration information for the authentication method. The encryption key is
- * a randomly generated key, stored in the file secretkey.php inside the plugin's directory. If it cannot be created
- * automatically you need to create it yourself with the following contents:
- *
- * <?php defined('_JEXEC') or die();
- * define('AKEEBA_LOGINGUARD_ENCRYPT_KEY', 'YOUR_PASSWORD_HERE');
- *
- * where YOUR_PASSWORD_HERE is a long, random password. We recommend creating one with the random password generator at
- * https://www.random.org/passwords/?num=1&len=24&format=html&rnd=new
- *
- * WARNING! Encrypting your LoginGuard configuration DOES NOT offer the same kind of protection as "encrypting" the
- * login passwords. In fact, Joomla (and WordPress, Drupal, Magento etc) does not store passwords "encrypted", it stores
- * them _hashed_. Hashing is highly asymmetrical: deriving the hash from a password takes milliseconds whereas deriving
- * the password from a hash takes anywhere from hours to millions of years. Encryption is highly symmetrical: getting
- * the encrypted version of unencrypted information _and_ getting the unencrypted information from its encrypted version
- * takes milliseconds, in both cases. The use of reversible encryption in LoginGuard is stipulated by the kind of data
- * being stored: we need the raw, unencrypted data as a _seed_ to generate a temporary, single-use authentication code
- * be it a six digit time-based one time password or a cryptographic U2F signature. Passwords, on the other hand, are
- * entirely different. Passwords are immutable _and_ are provided in the plain ("unencrypted") when the user logs in.
- * This means that you can generate the hash of the password provided by the user in the login form, which takes mere
- * milliseconds, and compare it with the hash stored in the database without having to reverse the hash at any point
- * (which would take millions of years!). This is only possible because of the immutability of passwords. Long story
- * cut short, if an attacker gets hold of *BOTH* your site's database *AND* its files they can very easily decrypt the
- * LoginGuard information. This is a perfectly acceptable risk since LoginGuard is a second authentication step, meant
- * to protect the user against their password being stolen somewhere outside of your server. Second authentication steps
- * DO NOT protect against your server being already compromised. This largely makes the point of encrypting the
- * LoginGuard configuration information rather moot which is why this plugin is disabled by default. The benefits of
- * encrypting LoginGuard's configuration are confined to very limited use cases, e.g. the Joomla! login being used as
- * a single sign on (SSO) method for a valuable asset and the Joomla! site's database (but NOT its files) may be read by
- * untrusted agents. This is, of course, A MASSIVE OPERATIONAL SECURITY FAILURE. We DO NOT recommend using LoginGuard
- * options encryption as your last line of defense in this kind of situations. Basically, if you find yourself in a
- * situation where you _need_ to enable this plugin YOUR SITE HAS ALREADY BEEN "PWNED" (COMPROMISED) AND YOU ARE GOING
- * TO REGRET YOUR BAD DECISIONS. We accept NO RESPONSIBILITY WHATSOEVER per the license of the software. YOU HAVE BEEN
- * WARNED. Then why do we have this plugin? Bluntly put, because there are folks out there who don't understand
- * operational security and insist that having LoginGuard not encrypt its configuration is a "security risk" when, in
- * fact, the security risk comes from the reckless disregard of operational security managing the site. This plugin is,
- * therefore, little more than a placebo for these folks.
+ * This plugin is not necessary on most sites. Enabling it has non-obvious downsides. READ THE DOCUMENTATION FIRST.
  */
 class PlgLoginguardEncrypt extends JPlugin
 {
