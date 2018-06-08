@@ -21,7 +21,7 @@ defined('_JEXEC') or die();
  *
  * @package     Akeeba\LoginGuard\Admin\Controller
  *
- * @since       2.0.0
+ * @since       3.1.0
  */
 class Users extends DataController
 {
@@ -41,7 +41,7 @@ class Users extends DataController
 	 *
 	 * @param   string  $task
 	 *
-	 * @since   2.0.0
+	 * @since   3.1.0
 	 */
 	protected function onBeforeExecute(&$task)
 	{
@@ -53,7 +53,7 @@ class Users extends DataController
 	 *
 	 * @return  void
 	 *
-	 * @since   2.0.0
+	 * @since   3.1.0
 	 */
 	protected function assertPrivilege()
 	{

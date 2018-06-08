@@ -35,7 +35,7 @@ defined('_JEXEC') or die();
  * @property  string  $otpKey
  * @property  string  $otep
  * @property  bool    $requireReset
- * @property  int     $tfaMethods     How many LoginGuard methods are active in this user's account
+ * @property  bool    $has2SV
  *
  * Filters:
  *
@@ -54,10 +54,11 @@ defined('_JEXEC') or die();
  * @method  $this  otpKey()         otpKey(string $v)
  * @method  $this  otep()           otep(string $v)
  * @method  $this  requireReset()   requireReset(bool $v)
- * @method  $this  tfaMethods()     tfaMethods(int $v)
+ * @method  $this  has2SV()         has2SV(int $v)
  * @method  $this  search()         search(string $userInfoToSearch)
  *
-**/
+ * @since   3.1.0
+ **/
 class Users extends DataModel
 {
 	/**
@@ -72,6 +73,8 @@ class Users extends DataModel
 		$config['idFieldName'] = 'id';
 
 		parent::__construct($container, $config);
+
+		$this->addKnownField('has2SV', 0, 'bool');
 
 		// If we're on backend load the behaviors
 		if ($this->container->platform->isBackend())
@@ -92,9 +95,32 @@ class Users extends DataModel
 			->group([$db->qn('user_id')]);
 
 		$query = $db->getQuery(true)
-			->select('*')
+			->select([
+				$db->qn('u') . '.*',
+				'IF(' . $db->qn('t.tfaMethods') . ' > 0, 1, 0) AS ' . $db->qn('has2SV')
+			])
 			->from($db->qn('#__users') . ' AS ' . $db->qn('u'))
 			->leftJoin("($subQuery) AS " . $db->qn('t') . ' ON ' . $db->qn('t.user_id') . ' = ' . $db->qn('u.id'));
+
+		// Run the "before build query" hook and behaviours
+		$this->triggerEvent('onBeforeBuildQuery', array(&$query, $overrideLimits));
+
+		// Apply custom WHERE clauses
+		if (count($this->whereClauses))
+		{
+			foreach ($this->whereClauses as $clause)
+			{
+				$query->where($clause);
+			}
+		}
+
+		$filter_has2SV = $this->getState('has2SV', null);
+
+		if ($filter_has2SV !== '')
+		{
+			$operator = $filter_has2SV ? '> 0' : ' IS NULL';
+			$query->where($db->qn('tfaMethods') . " $operator");
+		}
 
 		if ($search = $this->getState('search', null))
 		{
@@ -116,6 +142,9 @@ class Users extends DataModel
 
 		$dir = $this->getState('filter_order_Dir', 'DESC', 'cmd');
 		$query->order($order . ' ' . $dir);
+
+		// Run the "before after query" hook and behaviours
+		$this->triggerEvent('onAfterBuildQuery', array(&$query, $overrideLimits));
 
 		return $query;
 	}

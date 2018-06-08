@@ -48,6 +48,18 @@ class Toolbar extends BaseToolbar
 	}
 
 	/**
+	 * Render the toolbar for view=Users
+	 *
+	 * @since   3.1.0
+	 */
+	public function onUsers()
+	{
+		JToolbarHelper::title(JText::_('COM_LOGINGUARD') . ': <small>' . JText::_('COM_LOGINGUARD_HEAD_USERS') . '</small>', 'loginguard');
+		JToolbarHelper::back('JTOOLBAR_BACK', JRoute::_('index.php?option=com_loginguard'));
+		//JToolbarHelper::help('', false, 'https://github.com/akeeba/loginguard/wiki');
+	}
+
+	/**
 	 * Render the toolbar for view=Methods
 	 *
 	 * @since   2.0.0
